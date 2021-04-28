@@ -66,7 +66,7 @@ class EnclaveRequest:
                 nb_try -= 1
         # Receive response from enclave
         self.sock.settimeout(10)
-        a = self.sock.recv(1024)
+        a = self.sock.recv(2048)
         resp = Response(a)
         self.sock.close()
         return resp
@@ -82,6 +82,7 @@ class EnclaveRequest:
 
 class Response:
     def __init__(self, request):
+        print(request)
         self.raw_request = request.decode()
         self.request = self.raw_request.split("\r\n")
         self.header = self.raw_request.split("\r\n\r\n")[0]

@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from interface import EnclaveRequest
-import time
+import time, traceback
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -50,23 +51,22 @@ def post():
 
 @app.route('/sgx/key_exchange',methods=['POST'])
 def key_exchange():
-    public_key = request.form['public_key']
-    q = request.form['q']
-    a = request.form['a']
+    public_key = request.json['public_key']
+    q = request.json['q']
+    a = request.json['a']
     
     try:
         p = EnclaveRequest()
-        data = {"public_key": public_key,
-        "q": q,
-        "a": a
-        }
+        data = {"public_key": int(public_key),
+                "q": q,
+                "a": a}
         answ = p.post("https://key_exchange/post", data)
-        print(answ.content)
-        print(answ.get_dict_from_content())
-        return answ
-    except:
-        print("problem")
+        return answ.get_dict_from_content()
+    except Exception as e:
+        print("problem : ", e)
+        traceback.print_exc()
         return redirect(url_for('refused'))
+
 
 if __name__ == '__main__':
     app.debug = True 

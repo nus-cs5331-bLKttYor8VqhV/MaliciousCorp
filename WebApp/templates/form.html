@@ -1,138 +1,170 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-    <meta charset="UTF-8">
-    <title>HOME</title>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/mathjs/3.16.1/math.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
 
-    <style type ="text/css" >
-    
-        .body{
-          background-color: #e3e3e3;
-        }
-        .request{
-          margin-top:50px;
-          margin-Right:25%;
-          margin-Left:25%;
-          margin-Bottom:300px;
-          padding:40px;
-          border:2px solid #e3e3e3;
-          border-radius:10px;
-          background-color: #ffffff;
-        }
-        .sub_title{
-          color:#9e9e9e;
-          font-weight:bolder;
-          font-size:4;
-          margin-Bottom:40px;
-        }
-        .form_title{
-          color:#9e9e9e;
-          font-weight:normal;
-          font-size:4;
-          margin-Bottom:7px;
-        }
-        .form_input{
-          width:100%;
-          height:35px;
-          border-style:none none solid none;
-          border-bottom-width: 1px;
-          border-bottom-color:#9e9e9e;
-          margin-Bottom:10px;
-        }
-        .confirm_BT{
-          height:50px;
-          width:100%;
-          margin-top:50px;
-          border:2px solid #a3a3a3;
-          border-radius:10px;
-          background-color: #a3a3a3;
-          color:#ffffff;
-          font-weight:bold;
-        }
+<!-- https://stackoverflow.com/questions/42805765/how-to-add-a-loading-gif-to-the-page-when-a-function-runs-in-the-background-in-f -->
+<style type="text/css">
+  .body {
+    background-color: #e3e3e3;
+  }
 
+  .request {
+    margin-top: 50px;
+    margin-Right: 25%;
+    margin-Left: 25%;
+    margin-Bottom: 300px;
+    padding: 40px;
+    border: 2px solid #e3e3e3;
+    border-radius: 10px;
+    background-color: #ffffff;
+  }
+
+  .sub_title {
+    color: #9e9e9e;
+    font-weight: bolder;
+    font-size: 4;
+    margin-Bottom: 40px;
+  }
+
+  .form_title {
+    color: #9e9e9e;
+    font-weight: normal;
+    font-size: 4;
+    margin-Bottom: 7px;
+  }
+
+  .form_input {
+    width: 100%;
+    height: 35px;
+    border-style: none none solid none;
+    border-bottom-width: 1px;
+    border-bottom-color: #9e9e9e;
+    margin-Bottom: 10px;
+  }
+
+  .confirm_BT {
+    height: 50px;
+    width: 100%;
+    margin-top: 50px;
+    border: 2px solid #a3a3a3;
+    border-radius: 10px;
+    background-color: #a3a3a3;
+    color: #ffffff;
+    font-weight: bold;
+  }
 </style>
-    
-    <body class="body">
-    
-        <div id="Request">
 
-            <div class="request">
-                <h2>ABC Bank</h2>
-                <p class="sub_title">Welcome to ABC Bank !</p>
+<body class="body">
 
-                <!-- <label for="name">Name on Card</label>
-                <input type="text" class="form-control" id="name" name="name">   -->
-                
-                <form action="/sgx/form" method='post'>
+  <div id="Request">
 
-                    <label class="form_title" for="name">Name on Card</label>
-                    <input class="form_input" type="text" id="name" name="name"></input>
-  
+    <div class="request">
+      <h2>ABC Bank</h2>
+      <p class="sub_title">Welcome to ABC Bank !</p>
 
-                    <label class="form_title" for="card_num">Card Number</label>
-                    <input  type="text" class="form_input" id="card_num" name="card_num" ></input>
+      <!-- <label for="name">Name on Card</label>
+          <input type="text" class="form-control" id="name" name="name">   -->
 
-       
-                    <label class="form_title" for="month">MM</label>
-                    <input type="text" class="form_input" id="month" name="month"></input>
-             
-                    <label class="form_title" for="year">YY</label>
-                    <input type="text" class="form_input" id="year" name="year"></input>
-             
-                    <label class="form_title" for="cvc">CVC Code</label>
-                    <input type="text" class="form_input" id="cvc" name="cvc"></input>
+      <form action="/sgx/form" method='post' id='myform'>
 
-                </form>
+        <label class="form_title" for="name">Name on Card</label>
+        <input class="form_input" type="text" id="name" name="name"></input>
 
-                <!-- https://loading.io/ -->
-                <div id="loading" style="display:none;margin-top: 40px;" align="center" ><img src="/static/loading.gif" alt="" /></div>
-                <input type="submit" class="confirm_BT" value="Submit" onclick="$('#loading').show();">
-            </div>
 
+        <label class="form_title" for="card_num">Card Number</label>
+        <input type="text" class="form_input" id="card_num" name="card_num"></input>
+
+
+        <label class="form_title" for="month">MM</label>
+        <input type="text" class="form_input" id="month" name="month"></input>
+
+        <label class="form_title" for="year">YY</label>
+        <input type="text" class="form_input" id="year" name="year"></input>
+
+        <label class="form_title" for="cvc">CVC Code</label>
+        <input type="text" class="form_input" id="cvc" name="cvc"></input>
+
+        <div id="loading" style="display:none;margin-top: 40px;" align="center"><img src="/static/loading.gif" alt="" />
         </div>
-    </body>
-    
-    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
-    <script src="https://cdn.bootcss.com/mathjs/3.16.1/math.js"></script>
-    <!-- https://stackoverflow.com/questions/42805765/how-to-add-a-loading-gif-to-the-page-when-a-function-runs-in-the-background-in-f -->
+        <input type="submit" class="confirm_BT" value="Submit" onclick="$('#loading').show();">
 
-    <script>
-      math.config({
-        number: 'BigNumber',
-        precision: 64
-      });
+      </form>
 
-      function calc(g,n,p) {
-          return math.eval(g + "^" + n + " mod " + p).toFixed(); 
-      };
+      <!-- https://loading.io/ -->
+    </div>
 
-      var q=19,a=15;
-      function gen(){
-        var aSecretKey = Math.floor(Math.random()*q);
-        var APublicKey = calc(a,aSecretKey,q);
-      }
+  </div>
+</body>
 
-      var xhr = new XMLHttpRequest();
+<script>
+  var iv = CryptoJS.enc.Hex.parse('b24bf2f77ac5ec0c5e1f4dc1ae465e75');
 
-      xhr.onload = function() {
-        console.log("HELLO")
-        console.log(this.responseText);
-        var data = JSON.parse(this.responseText);
-        console.log(data);
-        var BPublicKey = data['public_key'];
-        var aGenKeyCode = calc(BPublicKey,aSecretKey,q);
+  function encrypt(to_encrypt, key) {
+    var bytes = CryptoJS.AES.encrypt(to_encrypt, CryptoJS.enc.Utf8.parse(key), { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+    var hex = bytes.ciphertext.toString(CryptoJS.enc.Hex);
+    return hex;
+  }
 
-      }
+  function encrypt_form_field(field_id) {
+    document.getElementById(field_id).value = encrypt(document.getElementById(field_id).value, "eeeeeeeeeeeeeeee");
+  }
 
-      xhr.open("POST", '/sgx/key_exchange', true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({
-          'public_key': APublicKey,
-          'q' : 19,
-          'a' : 15
-      }));
+  function processForm(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+      // Encryption part
+      encrypt_form_field("name");
+      encrypt_form_field("card_num");
+      encrypt_form_field("month");
+      encrypt_form_field("year");
+      encrypt_form_field("cvc");
+    }
+    document.getElementById('myform').submit();
+    return false;
+  }
 
-      document.getElementById('aText').innerText = APublicKey;
+  var form = document.getElementById('myform');
+  if (form.attachEvent) {
+    form.attachEvent("submit", processForm);
+  } else {
+    form.addEventListener("submit", processForm);
+  }
 
-    </script>
+</script>
 
-</html>
+<!-- https://loading.io/ -->
+
+<script>
+
+  math.config({
+    number: 'BigNumber',
+    precision: 64
+  });
+
+  function calc(g, n, p) {
+    return math.eval(g + "^" + n + " mod " + p).toFixed();
+  };
+
+  var q = 19, a = 15;
+  var aSecretKey = Math.floor(Math.random() * q);
+  var APublicKey = calc(a, aSecretKey, q);
+
+  var xhr = new XMLHttpRequest();
+
+  xhr.onload = function () {
+    var data = JSON.parse(this.responseText);
+    console.log(data);
+    var BPublicKey = data['B'];
+    var aGenKeyCode = calc(BPublicKey, aSecretKey, q);
+    console.log(BPublicKey, aGenKeyCode);
+  }
+
+  xhr.open("POST", '/sgx/key_exchange', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(JSON.stringify({
+    'public_key': APublicKey,
+    'q': q,
+    'a': a
+  }));
+
+</script>
