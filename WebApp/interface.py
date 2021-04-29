@@ -67,6 +67,7 @@ class EnclaveRequest:
         # Receive response from enclave
         self.sock.settimeout(10)
         a = self.sock.recv(2048)
+        print(a)
         resp = Response(a)
         self.sock.close()
         return resp
@@ -78,7 +79,6 @@ class EnclaveRequest:
             assert(a == b"ACK")
         except socket.timeout:
             print("[-] Problem when sending data to enclave\n")
-
 
 class Response:
     def __init__(self, request):
@@ -98,6 +98,8 @@ class Response:
     def get_dict_from_content(self):
         return json.loads(self.content)
 
+    def get_raw_response(self):
+        return self.raw_request
 
 if __name__ == "__main__":
     a = EnclaveRequest()

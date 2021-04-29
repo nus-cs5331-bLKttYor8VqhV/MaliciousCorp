@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from interface import EnclaveRequest
-import time, traceback
+import time, traceback, json
 
 app = Flask(__name__)
 
@@ -20,23 +20,30 @@ def accepted():
 def refused():
     return render_template("error.html")
 
+@app.route('/sgx/key_exchange',methods=['POST'])
+def key_exchange():
+    x = request.json['x']
+    y = request.json['y']
+    try:
+        p = EnclaveRequest()
+        data = {"x": x, "y": y}
+        answ = p.post("https://key_exchange/post", data)
+        print(answ.get_raw_response())
+        return json.dumps(answ.get_dict_from_content())
+    except:
+        print("problem")
+        return redirect(url_for('refused'))
 
 @app.route('/sgx/form', methods=["POST"])
 def post():
-    user_name = request.form['name']
-    card_number = request.form['card_num']
-    month = request.form['month']
-    year = request.form['year']
-    cvc_code = request.form['cvc']
-
+    enc = request.form['enc']
+    iv = request.form['iv']
+    
     try:
         a = EnclaveRequest()
-        data = {"user_name": user_name,
-        "card_number": card_number,
-        "month": month,
-        "year": year,
-        "cvc_code": cvc_code
-        }
+        data = {
+            "enc": enc,
+            "iv": iv}
         answ = a.post("https://httpbin.org/post", data)
         print(answ.content)
         print(answ.get_dict_from_content())
@@ -48,25 +55,6 @@ def post():
     except:
         print("problem")
         return redirect(url_for('refused'))
-
-@app.route('/sgx/key_exchange',methods=['POST'])
-def key_exchange():
-    public_key = request.json['public_key']
-    q = request.json['q']
-    a = request.json['a']
-    
-    try:
-        p = EnclaveRequest()
-        data = {"public_key": int(public_key),
-                "q": q,
-                "a": a}
-        answ = p.post("https://key_exchange/post", data)
-        return answ.get_dict_from_content()
-    except Exception as e:
-        print("problem : ", e)
-        traceback.print_exc()
-        return redirect(url_for('refused'))
-
 
 if __name__ == '__main__':
     app.debug = True 

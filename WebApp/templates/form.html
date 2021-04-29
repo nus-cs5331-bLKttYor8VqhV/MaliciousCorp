@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="UTF-8">
+<title>HOME</title>
+
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
 <script src="https://cdn.bootcss.com/mathjs/3.16.1/math.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
@@ -22,14 +27,12 @@
   .sub_title {
     color: #9e9e9e;
     font-weight: bolder;
-    font-size: 4;
     margin-Bottom: 40px;
   }
 
   .form_title {
     color: #9e9e9e;
     font-weight: normal;
-    font-size: 4;
     margin-Bottom: 7px;
   }
 
@@ -63,7 +66,7 @@
       <p class="sub_title">Welcome to ABC Bank !</p>
 
       <!-- <label for="name">Name on Card</label>
-          <input type="text" class="form-control" id="name" name="name">   -->
+            <input type="text" class="form-control" id="name" name="name">   -->
 
       <form action="/sgx/form" method='post' id='myform'>
 
@@ -97,29 +100,231 @@
 </body>
 
 <script>
-  var iv = CryptoJS.enc.Hex.parse('b24bf2f77ac5ec0c5e1f4dc1ae465e75');
 
-  function encrypt(to_encrypt, key) {
-    var bytes = CryptoJS.AES.encrypt(to_encrypt, CryptoJS.enc.Utf8.parse(key), { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+  var browser_key_pair;
+  var sgx_public_x;
+  var sgx_public_y;
+  var sgx_imported_key;
+
+  var shared_secret;
+  var derived_symetric_key;
+
+  function deriveSecretKey(privateKey, publicKey) {
+    return window.crypto.subtle.deriveKey(
+      {
+        name: "ECDH",
+        public: publicKey
+      },
+      privateKey,
+      {
+        name: "AES-CBC",
+        length: 256
+      },
+      true,
+      ["encrypt", "decrypt"]
+    );
+  }
+
+  async function derivePbkdf2(password) {
+    iterations = 32;
+    const pwUtf8 = password;                                           // encode pw as UTF-8
+    const pwKey = await crypto.subtle.importKey('raw', pwUtf8, 'PBKDF2', false, ['deriveBits']); // create pw key
+
+    var enc = new TextEncoder(); // always utf-8
+    const saltUint8 = enc.encode("Websecurity");                                                 // get random salt
+    // console.log(saltUint8);
+    const params = { name: 'PBKDF2', hash: 'SHA-256', salt: saltUint8, iterations: iterations }; // pbkdf2 params
+    const keyBuffer = await crypto.subtle.deriveBits(params, pwKey, 256);                        // derive key
+
+    const keyArray = Array.from(new Uint8Array(keyBuffer));                                      // key as byte array
+
+    return toHexString(keyArray);                                                                      // return composite key
+  }
+
+  function base64DecodeURL(b64urlstring) {
+    return new Uint8Array(atob(b64urlstring.replace(/-/g, '+').replace(/_/g, '/')).split('').map(val => {
+      return val.charCodeAt(0);
+    }));
+  }
+
+  function base64url_to_intstring(b64urlstring) {
+    var temp = base64DecodeURL(b64urlstring);
+    return temp.join('');
+  }
+
+  function base64DecodeURL2(b64urlstring) {
+    return atob(b64urlstring.replace(/-/g, '+').replace(/_/g, '/'));
+  }
+
+  function base64ToHex(str) {
+    const raw = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+    let result = '';
+    for (let i = 0; i < raw.length; i++) {
+      const hex = raw.charCodeAt(i).toString(16);
+      result += (hex.length === 2 ? hex : '0' + hex);
+    }
+    return result.toUpperCase();
+  }
+
+  const hexToUintArray = hex => {
+    const a = [];
+    for (let i = 0, len = hex.length; i < len; i += 2) {
+      a.push(parseInt(hex.substr(i, 2), 16));
+    }
+    return new Uint8Array(a);
+  }
+
+  const hexToArrayBuf = hex => {
+    return hexToUintArray(hex).buffer;
+  }
+
+  const arrayBufToBase64UrlEncode = buf => {
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    for (var i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary)
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-');
+  }
+
+  function toHexString(byteArray) {
+    return Array.from(byteArray, function (byte) {
+      return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+    }).join('')
+  }
+
+  async function fetch_JSON(keydata) {
+    const response = await fetch('/sgx/key_exchange', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ "x": base64ToHex(keydata.x), "y": base64ToHex(keydata.y) })
+    });
+    const data = await response.json();
+    return data;
+  }
+  
+
+  async function ecdh() {
+    // Generate ECDH pair for the browser
+    aKeyPair = await window.crypto.subtle.generateKey(
+      {
+        name: "ECDH",
+        namedCurve: "P-256"
+      },
+      true,
+      ["deriveKey", "deriveBits"]
+    )
+    browser_key_pair = aKeyPair;
+    keydata = await window.crypto.subtle.exportKey(
+        "jwk", //can be "jwk" (public or private), "raw" (public only), "spki" (public only), or "pkcs8" (private only)
+        aKeyPair.publicKey //can be a publicKey or privateKey, as long as extractable was true
+    )
+    res = await fetch_JSON(keydata);
+    var raw_resp_b = res["B"];
+    var contr = raw_resp_b.slice(0, 2);
+    var raw_x = raw_resp_b.slice(2, 66);
+    var raw_y = raw_resp_b.slice(66);
+    jwk_key = {
+      "crv": "P-256",
+      "ext": true,
+      "key_ops": [],
+      "kty": "EC",
+      "x": arrayBufToBase64UrlEncode(hexToArrayBuf(raw_x)),
+      "y": arrayBufToBase64UrlEncode(hexToArrayBuf(raw_y))
+    };
+    //console.log(jwk_key);
+    result_key = await crypto.subtle.importKey(
+      'jwk',
+      jwk_key,
+      {
+        name: 'ECDH',
+        namedCurve: 'P-256'
+      },
+      true,
+      []
+    )
+    
+    sgx_imported_key = result_key;
+    //console.log(result_key);
+    key_derived = await deriveSecretKey(browser_key_pair.privateKey, sgx_imported_key)
+    //console.log(key_derived);
+    keydata = await window.crypto.subtle.exportKey(
+      "jwk", //can be "jwk" (public or private), "raw" (public only), "spki" (public only), or "pkcs8" (private only)
+      key_derived //can be a publicKey or privateKey, as long as extractable was true
+    )  
+    shared_secret = base64ToHex(keydata["k"]);
+    var final_key = await derivePbkdf2(base64DecodeURL(keydata["k"]))
+    derived_symetric_key = final_key;
+  }
+
+  function post(path, params, method='post') {
+
+    // The rest of this code assumes you are not using a library.
+    // It can be made less verbose if you use one.
+    const form = document.createElement('form');
+    form.method = method;
+    form.action = path;
+  
+    for (const key in params) {
+      if (params.hasOwnProperty(key)) {
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = key;
+        hiddenField.value = params[key];
+  
+        form.appendChild(hiddenField);
+      }
+    }
+  
+    document.body.appendChild(form);
+    form.submit();
+  }
+  
+
+  async function encrypt(to_encrypt, key) {
+    var bytes = CryptoJS.AES.encrypt(to_encrypt, CryptoJS.enc.Utf8.parse(key), {mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
     var hex = bytes.ciphertext.toString(CryptoJS.enc.Hex);
-    return hex;
+    return bytes;
   }
 
-  function encrypt_form_field(field_id) {
-    document.getElementById(field_id).value = encrypt(document.getElementById(field_id).value, "eeeeeeeeeeeeeeee");
+  function encrypt_form_field(field_id, key) {
+    document.getElementById(field_id).value = encrypt(document.getElementById(field_id).value, key);
   }
 
-  function processForm(e) {
+  async function processForm(e) {
     if (e.preventDefault) {
       e.preventDefault();
-      // Encryption part
-      encrypt_form_field("name");
-      encrypt_form_field("card_num");
-      encrypt_form_field("month");
-      encrypt_form_field("year");
-      encrypt_form_field("cvc");
     }
-    document.getElementById('myform').submit();
+    // Key exchange part
+    await ecdh()
+    // Encrypt the form and send it as an POST request
+    console.log(derived_symetric_key);
+    form_json = {
+      name: document.getElementById("name").value || "default",
+      card_num: document.getElementById("card_num").value || "default",
+      month: document.getElementById("month").value || "default",
+      year: document.getElementById("year").value || "default",
+      cvc: document.getElementById("cvc").value || "default"
+    }
+    form_json_plaintext = JSON.stringify(form_json);
+    const genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+    string_iv = genRanHex(32);
+    iv = CryptoJS.enc.Hex.parse(string_iv);
+    console.log(derived_symetric_key.slice(0, 32));
+    form_json_encrypted_obj = CryptoJS.AES.encrypt(form_json_plaintext, CryptoJS.enc.Utf8.parse(derived_symetric_key.slice(0, 32).toUpperCase()), {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+    encrypted_to_send = form_json_encrypted_obj.ciphertext.toString(CryptoJS.enc.Hex);
+    to_send = {
+      enc: encrypted_to_send,
+      iv: string_iv
+    }
+    post("/sgx/form", to_send)
+    //encrypt_form_field("myform", sharedKey);
+    //document.getElementById('myform').submit();
     return false;
   }
 
@@ -132,39 +337,4 @@
 
 </script>
 
-<!-- https://loading.io/ -->
-
-<script>
-
-  math.config({
-    number: 'BigNumber',
-    precision: 64
-  });
-
-  function calc(g, n, p) {
-    return math.eval(g + "^" + n + " mod " + p).toFixed();
-  };
-
-  var q = 19, a = 15;
-  var aSecretKey = Math.floor(Math.random() * q);
-  var APublicKey = calc(a, aSecretKey, q);
-
-  var xhr = new XMLHttpRequest();
-
-  xhr.onload = function () {
-    var data = JSON.parse(this.responseText);
-    console.log(data);
-    var BPublicKey = data['B'];
-    var aGenKeyCode = calc(BPublicKey, aSecretKey, q);
-    console.log(BPublicKey, aGenKeyCode);
-  }
-
-  xhr.open("POST", '/sgx/key_exchange', true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(JSON.stringify({
-    'public_key': APublicKey,
-    'q': q,
-    'a': a
-  }));
-
-</script>
+</html>
