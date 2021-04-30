@@ -1,7 +1,7 @@
-import socket
 import json
-from urllib.parse import urlparse
+import socket
 import time
+from urllib.parse import urlparse
 
 
 class EnclaveRequest:
@@ -80,6 +80,7 @@ class EnclaveRequest:
         except socket.timeout:
             print("[-] Problem when sending data to enclave\n")
 
+
 class Response:
     def __init__(self, request):
         print(request)
@@ -100,6 +101,7 @@ class Response:
 
     def get_raw_response(self):
         return self.raw_request
+
 
 if __name__ == "__main__":
     a = EnclaveRequest()
