@@ -207,7 +207,7 @@
     const data = await response.json();
     return data;
   }
-  
+
 
   async function ecdh() {
     // Generate ECDH pair for the browser
@@ -248,7 +248,7 @@
       true,
       []
     )
-    
+
     sgx_imported_key = result_key;
     //console.log(result_key);
     key_derived = await deriveSecretKey(browser_key_pair.privateKey, sgx_imported_key)
@@ -256,7 +256,7 @@
     keydata = await window.crypto.subtle.exportKey(
       "jwk", //can be "jwk" (public or private), "raw" (public only), "spki" (public only), or "pkcs8" (private only)
       key_derived //can be a publicKey or privateKey, as long as extractable was true
-    )  
+    )
     shared_secret = base64ToHex(keydata["k"]);
     var final_key = await derivePbkdf2(base64DecodeURL(keydata["k"]))
     derived_symetric_key = final_key;
@@ -269,22 +269,22 @@
     const form = document.createElement('form');
     form.method = method;
     form.action = path;
-  
+
     for (const key in params) {
       if (params.hasOwnProperty(key)) {
         const hiddenField = document.createElement('input');
         hiddenField.type = 'hidden';
         hiddenField.name = key;
         hiddenField.value = params[key];
-  
+
         form.appendChild(hiddenField);
       }
     }
-  
+
     document.body.appendChild(form);
     form.submit();
   }
-  
+
 
   async function encrypt(to_encrypt, key) {
     var bytes = CryptoJS.AES.encrypt(to_encrypt, CryptoJS.enc.Utf8.parse(key), {mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
