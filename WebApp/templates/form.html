@@ -7,7 +7,6 @@
 <script src="https://cdn.bootcss.com/mathjs/3.16.1/math.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
 
-<!-- https://stackoverflow.com/questions/42805765/how-to-add-a-loading-gif-to-the-page-when-a-function-runs-in-the-background-in-f -->
 <style type="text/css">
   .body {
     background-color: #e3e3e3;
@@ -86,6 +85,8 @@
 
         <label class="form_title" for="cvc">CVC Code</label>
         <input type="text" class="form_input" id="cvc" name="cvc"></input>
+        <!-- https://stackoverflow.com/questions/42805765/how-to-add-a-loading-gif-to-the-page-when-a-function-runs-in-the-background-in-f -->
+        <!-- https://loading.io/ -->
 
         <div id="loading" style="display:none;margin-top: 40px;" align="center"><img src="/static/loading.gif" alt="" />
         </div>
@@ -93,7 +94,6 @@
 
       </form>
 
-      <!-- https://loading.io/ -->
     </div>
 
   </div>
@@ -125,6 +125,7 @@
     );
   }
 
+  // https://gist.github.com/chrisveness/770ee96945ec12ac84f134bf538d89fb
   async function derivePbkdf2(password) {
     iterations = 32;
     const pwUtf8 = password;                                           // encode pw as UTF-8
@@ -141,21 +142,14 @@
     return toHexString(keyArray);                                                                      // return composite key
   }
 
+  // https://gist.github.com/themikefuller/c1de46cbbdad02645b9dc006baedf88e
   function base64DecodeURL(b64urlstring) {
     return new Uint8Array(atob(b64urlstring.replace(/-/g, '+').replace(/_/g, '/')).split('').map(val => {
       return val.charCodeAt(0);
     }));
   }
 
-  function base64url_to_intstring(b64urlstring) {
-    var temp = base64DecodeURL(b64urlstring);
-    return temp.join('');
-  }
-
-  function base64DecodeURL2(b64urlstring) {
-    return atob(b64urlstring.replace(/-/g, '+').replace(/_/g, '/'));
-  }
-
+  // https://stackoverflow.com/questions/39460182/decode-base64-to-hexadecimal-string-with-javascript
   function base64ToHex(str) {
     const raw = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
     let result = '';
@@ -166,6 +160,7 @@
     return result.toUpperCase();
   }
 
+  // https://stackoverflow.com/questions/56846930/how-to-convert-raw-representations-of-ecdh-key-pair-into-a-json-web-key
   const hexToUintArray = hex => {
     const a = [];
     for (let i = 0, len = hex.length; i < len; i += 2) {
@@ -190,6 +185,7 @@
       .replace(/\+/g, '-');
   }
 
+  // https://stackoverflow.com/questions/34309988/byte-array-to-hex-string-conversion-in-javascript
   function toHexString(byteArray) {
     return Array.from(byteArray, function (byte) {
       return ('0' + (byte & 0xFF).toString(16)).slice(-2);
@@ -262,6 +258,7 @@
     derived_symetric_key = final_key;
   }
 
+  // https://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
   function post(path, params, method='post') {
 
     // The rest of this code assumes you are not using a library.
@@ -303,7 +300,9 @@
     // Key exchange part
     await ecdh()
     // Encrypt the form and send it as an POST request
-    console.log(derived_symetric_key);
+    console.log("Shared ECDH sercret = ", shared_secret);
+    console.log("Derived symetric key = ", derived_symetric_key);
+    console.log("Use sliced symetric key = ", derived_symetric_key.slice(0, 32));
     form_json = {
       name: document.getElementById("name").value || "default",
       card_num: document.getElementById("card_num").value || "default",
@@ -312,10 +311,11 @@
       cvc: document.getElementById("cvc").value || "default"
     }
     form_json_plaintext = JSON.stringify(form_json);
+    // https://stackoverflow.com/questions/58325771/how-to-generate-random-hex-string-in-javascript
     const genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
     string_iv = genRanHex(32);
     iv = CryptoJS.enc.Hex.parse(string_iv);
-    console.log(derived_symetric_key.slice(0, 32));
+    //console.log(derived_symetric_key.slice(0, 32));
     form_json_encrypted_obj = CryptoJS.AES.encrypt(form_json_plaintext, CryptoJS.enc.Utf8.parse(derived_symetric_key.slice(0, 32).toUpperCase()), {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
     encrypted_to_send = form_json_encrypted_obj.ciphertext.toString(CryptoJS.enc.Hex);
     to_send = {

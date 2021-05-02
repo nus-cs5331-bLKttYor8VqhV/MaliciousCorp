@@ -27,11 +27,12 @@ def key_exchange():
     try:
         p = EnclaveRequest()
         data = {"x": x, "y": y}
+        print("Key Exchange, Browser public key : ", data)
         answ = p.post("https://key_exchange/post", data)
-        print(answ.get_raw_response())
+        print("Key Exchange, Server public key : ", answ.get_dict_from_content())
         return json.dumps(answ.get_dict_from_content())
     except:
-        print("problem")
+        print("Error occured")
         return redirect(url_for('refused'))
 
 @app.route('/sgx/form', methods=["POST"])
@@ -45,9 +46,8 @@ def post():
             "enc": enc,
             "iv": iv}
         answ = a.post("https://httpbin.org/post", data)
-        print(answ.content)
-        print(answ.get_dict_from_content())
-        ok_condition = True # TODO
+        print("\nAnswer from bank: ", answ.get_dict_from_content())
+        ok_condition = True # If the format is wrong, the above line will throw an exception (get_dict_from_content), sufficient for the poc
         if ok_condition:
             return redirect(url_for('accepted'))
         else:
